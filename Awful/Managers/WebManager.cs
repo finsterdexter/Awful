@@ -5,12 +5,15 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Awful.Models.Web;
+using Awful.Tools;
 using Newtonsoft.Json;
 
 namespace Awful.Managers
 {
     public class WebManager
     {
+        private readonly HttpClientHandler _httpClientHandler;
+
         public WebManager(CookieContainer authenticationCookie = null)
         {
             if (authenticationCookie != null) {
@@ -20,14 +23,14 @@ namespace Awful.Managers
             {
                 CookieContainer = new CookieContainer();
             }
-            var handler = new HttpClientHandler
+            _httpClientHandler = new HttpClientHandler
             {
                 AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
                 UseCookies = true,
                 UseDefaultCredentials = false,
                 CookieContainer = CookieContainer
             };
-            Client = new HttpClient(handler);
+            Client = new HttpClient(_httpClientHandler);
             Client.DefaultRequestHeaders.CacheControl = new System.Net.Http.Headers.CacheControlHeaderValue()
             {
                 NoCache = true
@@ -43,7 +46,7 @@ namespace Awful.Managers
         public HttpClient Client { get; }
         public CookieContainer CookieContainer { get; }
 
-    const string Accept = "text/html, application/xhtml+xml, */*";
+        const string Accept = "text/html, application/xhtml+xml, */*";
 
         const string PostContentType = "application/x-www-form-urlencoded";
 
@@ -114,6 +117,13 @@ namespace Awful.Managers
             {
                 var error = new Error("", ex.Message, ex.StackTrace, false);
                 return new Result(false, html, JsonConvert.SerializeObject(error), "", uri);
+            }
+        }
+
+        public void ClearCookies() {
+            foreach (Cookie cookie in _httpClientHandler.CookieContainer.GetCookies(new Uri(EndPoints.BaseUrl)))
+            {
+                cookie.Expired = true;
             }
         }
     }
